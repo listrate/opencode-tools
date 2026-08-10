@@ -1,0 +1,5 @@
+# dependencies
+node_modules/
+# local — never pushed
+.DS_Store
+AGENTS.md
