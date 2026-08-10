@@ -18,7 +18,7 @@ RUN git clone --depth 1 https://github.com/alexw00/artifacthub-mcp . \
     && npm run build
 
 # Stage 2: opencode + tools
-FROM ghcr.io/anomalyco/opencode:1.0.196
+FROM ghcr.io/anomalyco/opencode:1.18.16
 
 ARG TARGETARCH
 
