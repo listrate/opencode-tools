@@ -5,6 +5,9 @@
 # no git, no kubelogin). The MCP servers (kubernetes, ssh-manager, artifacthub)
 # need node/npx; the workspace needs git/ssh; kubernetes MCP needs kubelogin.
 #
+# The entrypoint runs BOTH `opencode serve` (HTTP API) and an ACP listener
+# over TCP (socat bridging stdio -> TCP, since `opencode acp` is stdio-only).
+#
 # No secrets, no credentials, no private info are baked in. Public sources
 # only. Runtime secrets are injected separately at deploy time.
 
@@ -22,8 +25,9 @@ FROM ghcr.io/anomalyco/opencode:1.18.16
 
 ARG TARGETARCH
 
-# node/npm for MCP servers, git/ssh/curl for the workspace
-RUN apk add --no-cache nodejs npm git openssh-client curl
+# node/npm for MCP servers, git/ssh/curl for the workspace, socat for the
+# stdio->TCP bridge that exposes `opencode acp` over the network
+RUN apk add --no-cache nodejs npm git openssh-client curl socat
 
 # kubelogin (OIDC exec plugin for the kubernetes MCP) + kubectl client
 RUN ARCH=${TARGETARCH:-amd64} \
@@ -38,4 +42,18 @@ RUN ARCH=${TARGETARCH:-amd64} \
 # artifacthub-mcp (stdio, from source build above)
 COPY --from=artifacthub-builder /src/dist /usr/local/share/artifacthub-mcp/dist
 
-# upstream ENTRYPOINT is ["opencode"]; keep it
+# mise (polyglot runtime/tool version manager) — Alpine is musl, so use the
+# musl static binary from the official release tarball
+ARG MISE_VERSION=v2026.8.4
+RUN ARCH=${TARGETARCH:-amd64} \
+    && MISE_ARCH=$( [ "$ARCH" = "amd64" ] && echo x64 || echo arm64 ) \
+    && curl -fsSL -o /tmp/mise.tar.gz \
+         https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${MISE_ARCH}-musl.tar.gz \
+    && tar -xzf /tmp/mise.tar.gz -C /usr/local/bin \
+    && rm /tmp/mise.tar.gz \
+    && mise --version
+
+# entrypoint: runs `opencode serve` + the ACP-over-TCP listener (see entrypoint.sh)
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
