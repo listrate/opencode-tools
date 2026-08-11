@@ -43,14 +43,17 @@ RUN ARCH=${TARGETARCH:-amd64} \
 COPY --from=artifacthub-builder /src/dist /usr/local/share/artifacthub-mcp/dist
 
 # mise (polyglot runtime/tool version manager) — Alpine is musl, so use the
-# musl static binary from the official release tarball
+# musl static binary from the official release tarball. The tarball nests the
+# binary under mise/bin/, so extract then move both `mise` and its `mise.d`
+# companion into /usr/local/bin.
 ARG MISE_VERSION=v2026.8.4
 RUN ARCH=${TARGETARCH:-amd64} \
     && MISE_ARCH=$( [ "$ARCH" = "amd64" ] && echo x64 || echo arm64 ) \
     && curl -fsSL -o /tmp/mise.tar.gz \
          https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${MISE_ARCH}-musl.tar.gz \
-    && tar -xzf /tmp/mise.tar.gz -C /usr/local/bin \
-    && rm /tmp/mise.tar.gz \
+    && tar -xzf /tmp/mise.tar.gz -C /tmp \
+    && mv /tmp/mise/bin/mise /tmp/mise/bin/mise.d /usr/local/bin/ \
+    && rm -rf /tmp/mise /tmp/mise.tar.gz \
     && mise --version
 
 # entrypoint: runs `opencode serve` + the ACP-over-TCP listener (see entrypoint.sh)
