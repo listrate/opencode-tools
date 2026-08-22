@@ -5,8 +5,7 @@
 # no git, no kubelogin). The MCP servers (kubernetes, ssh-manager, artifacthub)
 # need node/npx; the workspace needs git/ssh; kubernetes MCP needs kubelogin.
 #
-# The entrypoint runs BOTH `opencode serve` (HTTP API) and an ACP listener
-# over TCP (socat bridging stdio -> TCP, since `opencode acp` is stdio-only).
+# The entrypoint runs `opencode serve` (HTTP API).
 #
 # No secrets, no credentials, no private info are baked in. Public sources
 # only. Runtime secrets are injected separately at deploy time.
@@ -25,9 +24,8 @@ FROM ghcr.io/anomalyco/opencode:1.18.16
 
 ARG TARGETARCH
 
-# node/npm for MCP servers, git/ssh/curl for the workspace, socat for the
-# stdio->TCP bridge that exposes `opencode acp` over the network
-RUN apk add --no-cache nodejs npm git openssh-client curl socat
+# node/npm for MCP servers, git/ssh/curl for the workspace
+RUN apk add --no-cache nodejs npm git openssh-client curl unzip
 
 # kubelogin (OIDC exec plugin for the kubernetes MCP) + kubectl client
 RUN ARCH=${TARGETARCH:-amd64} \
@@ -56,7 +54,7 @@ RUN ARCH=${TARGETARCH:-amd64} \
     && rm -rf /tmp/mise /tmp/mise.tar.gz \
     && mise --version
 
-# entrypoint: runs `opencode serve` + the ACP-over-TCP listener (see entrypoint.sh)
+# entrypoint: runs `opencode serve` (see entrypoint.sh)
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
