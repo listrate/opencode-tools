@@ -43,24 +43,12 @@ jobs:
           if [ -n "${OC_VERSION}" ]; then
             TOKEN=$(curl -fsSL -u "${GITHUB_ACTOR}:${REGISTRY_TOKEN}" \
               "https://ghcr.io/token?scope=repository:${GITHUB_REPOSITORY}:pull" \
-              | python3 -c 'import json,sys;print(json.load(sys.stdin)["token"])') || true
-            if [ -n "${TOKEN}" ]; then
+              | jq -r .token) || true
+            if [ -n "${TOKEN}" ] && [ "${TOKEN}" != "null" ]; then
               BUILD=$(curl -fsSL -H "Authorization: Bearer ${TOKEN}" \
                 "https://ghcr.io/v2/${GITHUB_REPOSITORY}/tags/list" \
-                | OC_VERSION="${OC_VERSION}" python3 -c '
-            import json, os, re, sys
-            try:
-                tags = json.load(sys.stdin).get("tags", [])
-            except Exception:
-                tags = []
-            prefix = "opencode-" + os.environ["OC_VERSION"] + "-"
-            nums = []
-            for t in tags:
-                m = re.fullmatch(re.escape(prefix) + r"(\d+)", t)
-                if m:
-                    nums.append(int(m.group(1)))
-            print(max(nums) + 1 if nums else 1)
-            ') || true
+                | jq -r --arg p "opencode-${OC_VERSION}-" \
+                  '[.tags[] | select(startswith($p)) | .[($p | length):] | tonumber] | if length == 0 then 1 else (max + 1) end') || true
             fi
           fi
           {
