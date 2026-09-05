@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Etc/UTC",
+  "schedule": ["* 6 * * 1-5"],
+  "dependencyDashboard": true,
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["(^|/)Dockerfile$"],
+      "description": "kubelogin release pin inside its download URL",
+      "matchStrings": [
+        "https://github\\.com/int128/kubelogin/releases/download/(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)/kubelogin_linux_\\$\\{ARCH\\}\\.zip"
+      ],
+      "depNameTemplate": "int128/kubelogin",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["(^|/)Dockerfile$"],
+      "description": "kubectl release pin inside its download URL",
+      "matchStrings": [
+        "https://dl\\.k8s\\.io/release/(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)/bin/linux/\\$\\{ARCH\\}/kubectl"
+      ],
+      "depNameTemplate": "kubernetes/kubernetes",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["(^|/)Dockerfile$"],
+      "description": "mise version ARG used by the mise download URL",
+      "matchStrings": [
+        "ARG MISE_VERSION=(?<currentValue>v[0-9]+\\.[0-9]+\\.[0-9]+)"
+      ],
+      "depNameTemplate": "jdx/mise",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Only track the opencode base image via the built-in dockerfile manager",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["node", "library/node"],
+      "enabled": false
+    }
+  ]
+}
