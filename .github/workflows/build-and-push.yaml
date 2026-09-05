@@ -33,11 +33,14 @@ jobs:
         id: tags
         run: |
           OC_VERSION=$(sed -nE 's#^FROM ghcr\.io/anomalyco/opencode:([^ ]+).*#\1#p' Dockerfile | head -n1)
-          TAGS="ghcr.io/${GITHUB_REPOSITORY}:latest"
-          if [ -n "${OC_VERSION}" ]; then
-            TAGS="${TAGS}\nghcr.io/${GITHUB_REPOSITORY}:opencode-${OC_VERSION}"
-          fi
-          printf 'tags=%b\n' "${TAGS}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "tags<<__TAGS__"
+            echo "ghcr.io/${GITHUB_REPOSITORY}:latest"
+            if [ -n "${OC_VERSION}" ]; then
+              echo "ghcr.io/${GITHUB_REPOSITORY}:opencode-${OC_VERSION}"
+            fi
+            echo "__TAGS__"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Build and push
         uses: docker/build-push-action@v6
